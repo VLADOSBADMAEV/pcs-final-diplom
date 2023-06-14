@@ -1,25 +1,51 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import vladislav.PageEntry;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-
+import java.util.List;
 
 public class Main {
+    static int port = 8989;
+
     public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(8989)) { // стартуем сервер один(!) раз
-            BooleanSearchEngine engine = new BooleanSearchEngine(new File("pdfs"));
-            while (true) { // в цикле(!) принимаем подключения
-                try (
-                        Socket socket = serverSocket.accept();
-                        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                        PrintWriter out = new PrintWriter(socket.getOutputStream())
-                ) {
-                    String request = in.readLine();
-                    String answer = engine.search(request).toString();
-                    out.println(answer);
+
+        try {
+            BooleanSearchEngine engine = new BooleanSearchEngine();
+            List<PageEntry> resultList = engine.search("Проект");
+
+            System.out.println("Результат по слову \"Бизнес\"");
+            for (PageEntry pageEntry : resultList) {
+                System.out.println(pageEntry.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+
+            BooleanSearchEngine engine = new BooleanSearchEngine();
+            Gson gson = new GsonBuilder().create();
+
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+
+                    String word = in.readLine();
+                    List<PageEntry> page = engine.search(word);
+
+                    if (page == null) {
+                        out.println("Совпадения отсутствуют");
+                    }
+
+                    var json = gson.toJson(page);
+                    out.println(json);
                 }
             }
         } catch (IOException e) {
-            System.out.println("Не могу стартовать сервер");
             e.printStackTrace();
         }
     }

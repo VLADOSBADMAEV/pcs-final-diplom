@@ -10,7 +10,7 @@ import java.util.*;
 
 
 public class BooleanSearchEngine implements SearchEngine {
-    protected static Map<String, List<PageEntry>> wordIndexingStorage;
+    protected Map<String, List<PageEntry>> wordIndexingStorage;
 
     //TODO обработать исключение в Main
     public BooleanSearchEngine() throws IOException {
@@ -46,8 +46,9 @@ public class BooleanSearchEngine implements SearchEngine {
 
                     if (wordIndexingStorage.containsKey(tmpWord)) {
                         wordIndexingStorage.get(tmpWord).add(new PageEntry(namePDFFile, j + 1, tmpValue));
-                    } else
+                    } else {
                         wordIndexingStorage.put(tmpWord, listPageTmp);
+                    }
                 }
             }
         }
@@ -55,10 +56,33 @@ public class BooleanSearchEngine implements SearchEngine {
 
     @Override
     public List<PageEntry> search(String word) {
-        String wordToLowReg = word.toLowerCase();
-        List<PageEntry> pageEntries = wordIndexingStorage.getOrDefault(wordToLowReg, Collections.emptyList());
+        List<PageEntry> result = new ArrayList<>();
+        String wordToLowerCase = word.toLowerCase();
+        if (wordIndexingStorage.get(wordToLowerCase) != null) {
+            for (PageEntry pageEntry : wordIndexingStorage.get(wordToLowerCase)) {
+                result.add(pageEntry);
+            }
+        }
+        Collections.sort(result);
+        return result;
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BooleanSearchEngine)) return false;
+        BooleanSearchEngine that = (BooleanSearchEngine) o;
+        return Objects.equals(wordIndexingStorage, that.wordIndexingStorage);
+    }
 
-        Collections.sort(pageEntries);
-        return pageEntries;
+    @Override
+    public int hashCode() {
+        return Objects.hash(wordIndexingStorage);
+    }
+
+    @Override
+    public String toString() {
+        return "BooleanSearchEngine{" +
+                "words=" + wordIndexingStorage +
+                '}';
     }
 }

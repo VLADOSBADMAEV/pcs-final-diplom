@@ -16,7 +16,7 @@ public class Main {
             BooleanSearchEngine engine = new BooleanSearchEngine();
             List<PageEntry> resultList = engine.search("Проект");
 
-            System.out.println("Результат по слову \"Бизнес\"");
+            System.out.println("Результат по слову \"Деньги\"");
             for (PageEntry pageEntry : resultList) {
                 System.out.println(pageEntry.toString());
             }

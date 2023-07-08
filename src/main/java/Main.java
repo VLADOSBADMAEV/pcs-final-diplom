@@ -1,52 +1,39 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import vladislav.PageEntry;
+import com.google.gson.reflect.TypeToken;
+
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
+import java.lang.reflect.Type;
+
 
 public class Main {
-    static int port = 8989;
-
+    final static String PATH = "pdfs";
     public static void main(String[] args) {
-
-        try {
-            BooleanSearchEngine engine = new BooleanSearchEngine();
-            List<PageEntry> resultList = engine.search("Проект");
-
-            System.out.println("Результат по слову \"Деньги\"");
-            for (PageEntry pageEntry : resultList) {
-                System.out.println(pageEntry.toString());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        int port = 8989;
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-
-            BooleanSearchEngine engine = new BooleanSearchEngine();
-            Gson gson = new GsonBuilder().create();
-
             while (true) {
-                try (Socket clientSocket = serverSocket.accept();
-                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+                try (Socket connection = serverSocket.accept();
+                     BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                     PrintWriter out = new PrintWriter(connection.getOutputStream(), true)) {
 
                     String word = in.readLine();
-                    List<PageEntry> page = engine.search(word);
+                    BooleanSearchEngine engine = new BooleanSearchEngine(new File(PATH));
+                    List<PageEntry> pageEntryList = engine.search(word);
 
-                    if (page == null) {
-                        out.println("Совпадения отсутствуют");
-                    }
-
-                    var json = gson.toJson(page);
-                    out.println(json);
+                    Type type = new TypeToken<List<PageEntry>>() {}.getType();
+                    Gson gson = new GsonBuilder().create();
+                    out.println(gson.toJson(pageEntryList, type));
+                } catch (IOException exception) {
+                    exception.printStackTrace();
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException exception) {
+            exception.printStackTrace();
         }
     }
 }

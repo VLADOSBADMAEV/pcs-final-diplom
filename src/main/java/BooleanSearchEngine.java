@@ -1,7 +1,6 @@
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
-import com.itextpdf.kernel.pdf.PdfPage;
 import vladislav.PageEntry;
 
 import java.io.File;
@@ -9,44 +8,47 @@ import java.io.IOException;
 import java.util.*;
 
 public class BooleanSearchEngine implements SearchEngine {
-    private final Map<PageEntry, String> wordList = new HashMap<>();
+    protected Map<String, List<PageEntry>> wordPlace;
 
     public BooleanSearchEngine(File pdfsDir) throws IOException {
-        File[] files = pdfsDir.listFiles();
-        if (files != null && files.length > 0) {
-            for (File file : files) {
-                if (file.getName().contains(".pdf")) {
-                    PdfDocument document = new PdfDocument(new PdfReader(file));
-                    for (int i = 0; i < document.getNumberOfPages(); i++) {
-                        PdfPage page = document.getPage(i + 1);
-                        String text = PdfTextExtractor.getTextFromPage(page);// получить текст со страницы
-                        String[] words = text.split("\\P{IsAlphabetic}+");// разбить текст на слова
-                        Map<String, Integer> freqs = new HashMap<>();
-                        for (var word : words) {
-                            if (word.isEmpty()) {
-                                continue;
-                            }
-                            int f = freqs.getOrDefault(word, 0) + 1;
-                            freqs.put(word.toLowerCase(), f);
-                            wordList.put(new PageEntry(file.getName(), document.getPageNumber(page), f), word.toLowerCase());
-                        }
+
+        wordPlace = new HashMap<>();
+        for (File file : Objects.requireNonNull(pdfsDir.listFiles())) {
+            var doc = new PdfDocument(new PdfReader(file));
+            for (int i = 1; i <= doc.getNumberOfPages(); i++) {
+                var text = PdfTextExtractor.getTextFromPage(doc.getPage(i));
+                var words = text.split("\\P{IsAlphabetic}+");
+
+                Map<String, Integer> freqs = new HashMap<>();
+                for (String word : words) {
+                    if (!word.isBlank()) {
+                        freqs.put(word.toLowerCase(), freqs.getOrDefault(word, 0) + 1);
                     }
-                    document.close();
+                }
+                Set<Map.Entry<String, Integer>> currentPageWord = freqs.entrySet();
+                for (Map.Entry<String, Integer> freqsEntry : currentPageWord) {
+                    if (wordPlace.containsKey(freqsEntry.getKey())) {
+                        wordPlace.get(freqsEntry.getKey()).add(new PageEntry(file.getName(), i, freqsEntry.getValue()));
+                    } else {
+                        List<PageEntry> currEntryList = new ArrayList<>();
+                        currEntryList.add(new PageEntry(file.getName(), i, freqsEntry.getValue()));
+                        wordPlace.put(freqsEntry.getKey(), currEntryList);
+                    }
                 }
             }
+        }
+        Set<String> keySet = wordPlace.keySet();
+        for (String e : keySet) {
+            wordPlace.get(e).sort(Comparator.reverseOrder());
         }
     }
 
     @Override
-    public List<PageEntry> search(String word) {
-        List<PageEntry> list = new ArrayList<>();
-        for (Map.Entry<PageEntry, String> entry : wordList.entrySet()) {
-            if (entry.getValue().equals(word)) {
-                list.add(entry.getKey());
-            }
+    public List<PageEntry> search(String word) throws IOException {
+        if (wordPlace.containsKey(word)) {
+            return wordPlace.get(word);
+        } else {
+            return Collections.emptyList();
         }
-        Collections.sort(list);
-        return list;
     }
-
 }

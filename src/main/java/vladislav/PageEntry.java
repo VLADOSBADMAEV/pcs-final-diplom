@@ -12,19 +12,23 @@ public class PageEntry implements Comparable<PageEntry> {
     }
 
     @Override
-    public int compareTo(PageEntry o) {
-        int result = o.count - this.count;
+    public int compareTo(PageEntry p) {
+        int result = Integer.compare(this.count, p.count);
         if (result == 0) {
-            result = this.pdfName.compareTo(o.pdfName);
-            if (result == 0) {
-                result = this.page - o.page;
-            }
+            result = p.pdfName.compareTo(this.pdfName);
+        }
+        if (result == 0) {
+            result = Integer.compare(p.page, this.page);
         }
         return result;
     }
 
     @Override
     public String toString() {
-        return "pdf= " + pdfName + " page= " + page + " count= " + count;
+        return "\n{" + '\n' +
+                "\"pdfName\": " + pdfName + ',' + "\n" +
+                "\"page\": " + page + ',' + "\n" +
+                "\"count\": " + count + "\n" +
+                "}";
     }
 }
